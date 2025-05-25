@@ -1,0 +1,56 @@
+version: "3.8"
+
+x-rocm: &rocm
+  devices:
+    - "/dev/kfd"
+    - "/dev/dri"          # all render nodes (ROCm docs v5.7)
+  group_add:
+    - "video"
+
+services:
+  desktop:
+    build: ./docker-cua-starter       # zenbase repo
+    container_name: cua-desktop
+    ports:
+      - "14500:14500"
+    networks: [tasknet]
+    environment:
+      - DISPLAY=:1
+      - XPRA_HTML=1
+    volumes:
+      - ./shared:/workspace
+    restart: unless-stopped
+
+  agent:
+    image: rocm/pytorch:latest
+    container_name: qwen-agent
+    ports:
+      - "8000:8000"
+    <<: *rocm
+    networks: [tasknet]
+    environment:
+      - HF_HOME=/workspace/.hf
+      - CUDA_VISIBLE_DEVICES=0        # ROCm uses same var for HIP
+    volumes:
+      - ./shared:/workspace
+    command: >
+      bash -c "
+        pip install git+https://github.com/QwenLM/Qwen2.5-VL.git@main
+                   optimum-amd flash-attn --no-build-isolation &&
+        python /workspace/qwen_agent.py
+      "
+    restart: unless-stopped
+
+  orchestrator:
+    build: .
+    container_name: taskinator-orchestrator
+    networks: [tasknet]
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    command: uvicorn orchestrator:app --host 0.0.0.0 --port 5000
+
+networks:
+  tasknet:
+    driver: bridge 

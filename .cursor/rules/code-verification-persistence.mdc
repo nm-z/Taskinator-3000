@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Rule “Code-Verification Persistence”: if a response contains code, automatically execute and test it, regenerating and retesting on failure until all tests pass. Do not finalize or stop the response until the code has been verified to work.
+
+
+
+
+
+
+
+

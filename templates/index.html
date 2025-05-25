@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat and VNC Interface</title>
+    <style>
+        :root {
+            --bg-dark: #181a20;
+            --bg-chat: #23262f;
+            --bg-vnc: #1a1d23;
+            --border: #2c2f36;
+            --text: #f1f1f1;
+            --accent: #3a7afe;
+        }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .chat {
+            width: 30%;
+            padding: 20px 16px 20px 20px;
+            border-right: 1px solid var(--border);
+            box-sizing: border-box;
+            background: var(--bg-chat);
+            display: flex;
+            flex-direction: column;
+        }
+        .chat h2 {
+            margin: 0 0 16px 0;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .chat ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0 0 12px 0;
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .chat ul li {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .chat ul li:last-child {
+            border-bottom: none;
+        }
+        .chat input {
+            width: 75%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-dark);
+            color: var(--text);
+            outline: none;
+        }
+        .chat button {
+            width: 22%;
+            padding: 8px;
+            margin-left: 3%;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .chat button:hover {
+            background: #2554c7;
+        }
+        .vnc {
+            width: 70%;
+            background: var(--bg-vnc);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .vnc iframe {
+            width: 98%;
+            height: 96vh;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: #111;
+            box-shadow: 0 2px 24px 0 #000a;
+        }
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+            .chat, .vnc { width: 100%; height: 50vh; }
+            .vnc iframe { height: 48vh; }
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="chat">
+            <h2>Chat</h2>
+            <ul id="messages"></ul>
+            <div style="display: flex; align-items: center;">
+                <input id="message" autocomplete="off" placeholder="Type a message..." />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+        <div class="vnc">
+            <iframe src="http://localhost:6080/vnc.html?autoconnect=true&resize=scale"></iframe>
+        </div>
+    </div>
+    <script>
+        var socket = io();
+        var messages = document.getElementById('messages');
+        var messageInput = document.getElementById('message');
+        socket.on('message', function(msg){
+            var item = document.createElement('li');
+            item.textContent = msg;
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+        });
+        function sendMessage() {
+            var msg = messageInput.value;
+            socket.emit('message', msg);
+            messageInput.value = '';
+        }
+    </script>
+</body>
+</html> 
