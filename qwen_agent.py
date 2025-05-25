@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 import torch
+from transformers.models.qwen2_vl.image_processing_qwen2_vl_fast import smart_resize
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger("qwen_agent")
 
 app = FastAPI()
 
@@ -16,6 +21,14 @@ processor = AutoProcessor.from_pretrained(model_name)
 def generate(messages):
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     vis, _ = processor.extract_vision_inputs(messages)
+    # Resize images if present
+    if vis:
+        resized_vis = []
+        for img in vis:
+            h, w = img.height, img.width
+            new_h, new_w = smart_resize(h, w, min_pixels=512*512, max_pixels=1024*1024)
+            resized_vis.append(img.resize((new_w, new_h)))
+        vis = resized_vis
     inputs = processor(text=[text], images=vis, padding=True, return_tensors="pt")
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     out = model.generate(
@@ -31,9 +44,15 @@ def generate(messages):
 
 @app.post("/v1/chat/completions")
 async def chat(req: dict):
-    messages = req.get("messages", [])
-    reply = generate(messages)
-    return {"choices":[{"message":{"content":reply}}]}
+    logger.info(f"Received /v1/chat/completions: {req}")
+    try:
+        messages = req.get("messages", [])
+        reply = generate(messages)
+        logger.info(f"Model reply: {reply}")
+        return {"choices":[{"message":{"content":reply}}]}
+    except Exception as e:
+        logger.error(f"Error in chat: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
