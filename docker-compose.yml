@@ -17,7 +17,7 @@ services:
     environment:
       - DISPLAY=:1
       - XPRA_HTML=1
-      - XPRA_PASSWORD=${XPRA_PASSWORD}
+      - XPRA_PASSWORD=pass
     volumes:
       - ./shared:/workspace
     restart: unless-stopped
