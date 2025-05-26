@@ -1,0 +1,7 @@
+# requirements_orchestrator.txt
+fastapi
+uvicorn[standard]
+httpx
+python-multipart
+pydantic>=2
+python-dotenv

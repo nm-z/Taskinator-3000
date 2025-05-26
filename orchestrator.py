@@ -44,7 +44,10 @@ async def chat(req: dict, request: Request):
                     logger.error(f"Desktop returned no result: {r.text}")
                     return {"error": f"Desktop returned no result: {r.text}"}
                 logger.info(f"Tool result: {result}")
-                return {"tool_result": result}
+                response_data = {"tool_result": result}
+                if call["tool"] == "drag" and "path" in call["args"]:
+                    response_data["drag_path"] = call["args"]["path"]
+                return response_data
             except Exception as e:
                 logger.error(f"Malformed desktop response: {e}, body={r.text}")
                 return {"error": f"Malformed desktop response: {e}"}
