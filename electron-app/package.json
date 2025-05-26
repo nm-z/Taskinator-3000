@@ -4,11 +4,21 @@
   "main": "main.cjs",
   "private": true,
   "scripts": {
-    "start": "NODE_ENV=development electron ."
+    "build:react": "webpack --config webpack.config.mjs",
+    "start:react": "webpack --config webpack.config.mjs --watch",
+    "start": "npm run build:react && NODE_ENV=development electron ."
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
     "electron": "^36.3.1",
-    "electron-builder": "^24.6.3"
+    "electron-builder": "^24.6.3",
+    "rollup": "^2.79.2",
+    "rollup-plugin-terser": "^7.0.2",
+    "style-loader": "^4.0.0"
   },
   "build": {
     "appId": "com.taskinator3000.app",
@@ -37,13 +47,16 @@
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@mui/icons-material": "^7.1.0",
+    "@novnc/novnc": "^1.6.0",
     "@tabler/icons-react": "^3.33.0",
     "@tailwindcss/postcss": "^4.1.7",
     "autoprefixer": "^10.4.21",
     "feather-icons-react": "^0.9.0",
     "lucide-react": "^0.511.0",
+    "novnc-node": "^0.5.3",
     "postcss": "^8.5.3",
     "react-icons": "^5.5.0",
     "tailwindcss": "^4.1.7"
-  }
+  },
+  "type": "module"
 }

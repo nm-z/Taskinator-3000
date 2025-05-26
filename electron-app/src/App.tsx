@@ -48,74 +48,59 @@ const Desktop: React.FC<DesktopProps> = ({
 
   useEffect(() => {
     const initializeRfb = () => {
-      if (vncRef.current && (window as any).RFB) {
-        const RFB = (window as any).RFB;
+      if (vncRef.current && (window as any).noVNC && (window as any).noVNC.RFB) {
+        const RFB = (window as any).noVNC.RFB;
         if (rfbInstance.current) {
           try {
             rfbInstance.current.disconnect();
           } catch (e) { console.warn("Error disconnecting previous RFB instance:", e); }
           rfbInstance.current = null;
         }
-        if(vncRef.current) {
-            // Clear previous messages and show connecting message
-            vncRef.current.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-slate-400 p-4 text-sm">Connecting to VNC desktop...</p></div>'; 
+        if (vncRef.current) {
+          vncRef.current.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-slate-400 p-4 text-sm">Connecting to VNC desktop...</p></div>';
         }
-        const rfb = new RFB(vncRef.current!, vncWebSocketUrl, { 
-            credentials: { password: vncPassword },
-            shared: true, // Example: allow shared connection
-            view_only: false // Example: allow control
+        const rfb = new RFB(vncRef.current!, vncWebSocketUrl, {
+          credentials: { password: vncPassword },
         });
-        rfb.scaleViewport = true;
-        rfb.resizeSession = true;
-
         rfb.addEventListener('connect', () => {
-            console.log('RFB connected to', vncWebSocketUrl);
-            if (vncRef.current) { vncRef.current.innerHTML = ''; } // Clear "Connecting..."
+          console.log('RFB connected to', vncWebSocketUrl);
+          if (vncRef.current) { vncRef.current.innerHTML = ''; }
         });
         rfb.addEventListener('disconnect', (detail: any) => {
-            console.log('RFB disconnected from', vncWebSocketUrl, 'Details:', detail);
-            if (vncRef.current) {
-                 vncRef.current.innerHTML = `<div class="flex items-center justify-center h-full"><div class="p-4 text-sm text-center"><p class="text-amber-400 font-semibold">VNC Disconnected</p><p class="text-slate-400 mt-1">Reason: ${detail?.detail?.reason || 'Unknown'}. Clean disconnect: ${detail?.detail?.clean}.</p><p class="text-slate-500 text-xs mt-2">Attempting to reconnect or check settings if issues persist.</p></div></div>`;
-            }
-        });
-         rfb.addEventListener('securityfailure', (detail: any) => {
-            console.error('RFB security failure for', vncWebSocketUrl, 'Details:', detail);
-             if (vncRef.current) {
-                 vncRef.current.innerHTML = `<div class="flex items-center justify-center h-full"><div class="p-4 text-sm text-center"><p class="text-red-400 font-semibold">VNC Security Failure</p><p class="text-slate-400 mt-1">Reason: ${detail?.detail?.reason || 'Incorrect password or security configuration issue.'}</p></div></div>`;
-            }
-        });
-        rfb.addEventListener('onerror', (errorEvent: any) => {
-            // RFB "error" events might not always be fatal or mean a failed connection.
-            // Sometimes they are for non-critical issues.
-            console.error('RFB error for', vncWebSocketUrl, 'Error Event:', errorEvent);
-            if (vncRef.current && (!rfbInstance.current || !rfbInstance.current.isConnected())) {
-                 vncRef.current.innerHTML = `<div class="flex items-center justify-center h-full"><p class="p-4 text-sm text-red-400">RFB Connection Error. Check console.</p></div>`;
-            }
+          console.log('RFB disconnected from', vncWebSocketUrl, 'Details:', detail);
+          if (vncRef.current) {
+            vncRef.current.innerHTML = `<div class="flex items-center justify-center h-full"><div class="p-4 text-sm text-center"><p class="text-amber-400 font-semibold">VNC Disconnected</p><p class="text-slate-400 mt-1">Reason: ${detail?.detail?.reason || 'Unknown'}. Clean disconnect: ${detail?.detail?.clean}.</p><p class="text-slate-500 text-xs mt-2">Attempting to reconnect or check settings if issues persist.</p></div></div>`;
+          }
         });
         rfbInstance.current = rfb;
-      } else if (!(window as any).RFB) {
-        console.warn("RFB script not loaded. Retrying in 200ms...");
-        setTimeout(initializeRfb, 200); 
+      } else {
+        console.error("noVNC.RFB not found on window. Ensure novnc-node script loaded correctly.");
+        if (vncRef.current) {
+          vncRef.current.innerHTML = `<div class=\"flex items-center justify-center h-full\"><p class=\"p-4 text-sm text-red-500\">FATAL ERROR: Failed to initialize VNC client (noVNC.RFB not found).</p></div>`;
+        }
       }
     };
-
     const scriptId = "novnc-rfb-script";
-    const noVncScriptUrl = "/js/novnc.min.js";
+    const noVncScriptUrl = "./js/novnc.min.js";
     if (!document.getElementById(scriptId)) {
       const script = document.createElement("script");
       script.id = scriptId;
       script.src = noVncScriptUrl;
       script.async = true;
-      script.onload = () => { console.log("noVNC script loaded from", noVncScriptUrl); initializeRfb(); };
+      script.onload = () => {
+        console.log("noVNC script loaded from", noVncScriptUrl);
+        initializeRfb();
+      };
       script.onerror = () => {
         console.error("Failed to load noVNC script from", noVncScriptUrl);
-         if (vncRef.current) {
-            vncRef.current.innerHTML = `<div class=\"flex items-center justify-center h-full\"><p class=\"p-4 text-sm text-red-500\">FATAL ERROR: Failed to load VNC client script. Please check internet connection and CDN accessibility.</p></div>`;
+        if (vncRef.current) {
+          vncRef.current.innerHTML = `<div class=\"flex items-center justify-center h-full\"><p class=\"p-4 text-sm text-red-500\">FATAL ERROR: Failed to load VNC client script.</p></div>`;
         }
       };
       document.head.appendChild(script);
-    } else { initializeRfb(); }
-
+    } else {
+      initializeRfb();
+    }
     return () => {
       if (rfbInstance.current) {
         try { rfbInstance.current.disconnect(); console.log("RFB disconnected on cleanup."); }
@@ -123,7 +108,7 @@ const Desktop: React.FC<DesktopProps> = ({
         rfbInstance.current = null;
       }
     };
-  }, [vncPassword, vncWebSocketUrl]); 
+  }, [vncPassword, vncWebSocketUrl]);
 
   return (
     <div className="relative w-full h-full bg-black border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
