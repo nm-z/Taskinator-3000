@@ -4,6 +4,12 @@ interface DesktopProps {
   dragPath?: { x: number; y: number }[];
 }
 
+declare global {
+  interface Window {
+    XpraPassword?: string;
+  }
+}
+
 export default function Desktop({ dragPath }: DesktopProps) {
   const vncRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -11,11 +17,14 @@ export default function Desktop({ dragPath }: DesktopProps) {
     script.src = "https://cdn.jsdelivr.net/npm/novnc@1.4.0/core/rfb.js";
     script.onload = () => {
       const RFB = (window as any).RFB;
-      const vncPassword = import.meta.env.VITE_VNC_PASSWORD || "your_secure_password";
+      const xpraPassword = window.XpraPassword || "";
+      if (xpraPassword === "") {
+        console.warn("Xpra Password is empty or not set. Ensure it's correctly injected by app.py if Xpra requires it.");
+      }
       const rfb = new RFB(
         vncRef.current!,
         "ws://localhost:14500/websockify",
-        { credentials: { password: vncPassword } }
+        { credentials: { password: xpraPassword } }
       );
       rfb.scaleViewport = true;
     };

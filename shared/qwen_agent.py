@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 import torch
 from transformers.models.qwen2_vl.image_processing_qwen2_vl_fast import smart_resize
@@ -11,31 +11,28 @@ logger = logging.getLogger("qwen_agent")
 app = FastAPI()
 
 model_name = "Qwen/Qwen2.5-VL-7B-Instruct"
-model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-    model_name,
-    torch_dtype="auto",
-    device_map="auto",
-    attn_implementation="flash_attention_2"
-)
-processor = AutoProcessor.from_pretrained(model_name)
+try:
+    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+        model_name,
+        torch_dtype="auto",
+        device_map="auto"
+    )
+    processor = AutoProcessor.from_pretrained(model_name)
+    logger.info(f"{model_name} model and processor loaded successfully.")
+except Exception as e:
+    logger.error(json.dumps({"event": "model_load_error", "error": str(e)}))
+    raise RuntimeError(f"Failed to load model or processor: {e}")
 
 def generate(messages):
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    vis, _ = processor.extract_vision_inputs(messages)
-    # Resize images if present
-    if vis:
-        resized_vis = []
-        for img in vis:
-            h, w = img.height, img.width
-            new_h, new_w = smart_resize(h, w, min_pixels=512*512, max_pixels=1024*1024)
-            resized_vis.append(img.resize((new_w, new_h)))
-        vis = resized_vis
+    vis = None  # Pass None for images if not present
     inputs = processor(text=[text], images=vis, padding=True, return_tensors="pt")
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     out = model.generate(
         **inputs,
-        max_new_tokens=256,
-        temperature=0.0
+        max_new_tokens=1024,
+        temperature=0.1,
+        do_sample=False
     )
     reply = processor.batch_decode(
         out[:, inputs["input_ids"].shape[1]:],
@@ -47,13 +44,18 @@ def generate(messages):
 async def chat(req: dict):
     logger.info(json.dumps({"event": "chat_request_received", "request": req}))
     try:
-        messages = req.get("messages", [])
+        messages = req.get("messages")
+        if not messages or not isinstance(messages, list):
+            logger.error(json.dumps({"event": "input_validation_error", "error": "'messages' field must be a non-empty list"}))
+            raise HTTPException(status_code=400, detail="'messages' field must be a non-empty list")
         reply = generate(messages)
         logger.info(json.dumps({"event": "model_reply", "reply": reply}))
-        return {"choices":[{"message":{"content":reply}}]}
+        return {"choices":[{"message":{"role":"assistant", "content":reply}}]}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         logger.error(json.dumps({"event": "error", "error": str(e)}))
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

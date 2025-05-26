@@ -23,7 +23,9 @@ services:
     restart: unless-stopped
 
   agent:
-    image: rocm/pytorch:latest
+    build:
+      context: .
+      dockerfile: agent.Dockerfile
     container_name: qwen-agent
     ports:
       - "8000:8000"
@@ -31,14 +33,9 @@ services:
     networks: [tasknet]
     environment:
       - HF_HOME=/workspace/.hf
-      - CUDA_VISIBLE_DEVICES=0        # ROCm uses same var for HIP
+      - CUDA_VISIBLE_DEVICES=0
     volumes:
       - ./shared:/workspace
-    command: >
-      bash -c "
-        pip install git+https://github.com/huggingface/transformers accelerate qwen-vl-utils flash-attn --no-build-isolation &&
-        python /workspace/qwen_agent.py
-      "
     restart: unless-stopped
 
   orchestrator:
