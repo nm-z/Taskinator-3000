@@ -6,13 +6,14 @@
   "scripts": {
     "start": "NODE_ENV=development electron .",
     "start:prod": "NODE_ENV=production electron .",
-    "build:react": "cd ../frontend && npm run build",
+    "build:react": "vite build",
     "pack": "npm run build:react && electron-builder --dir",
     "dist": "npm run build:react && electron-builder"
   },
   "devDependencies": {
     "electron": "^36.3.1",
-    "electron-builder": "^24.6.3"
+    "electron-builder": "^24.6.3",
+    "vite": "^5.4.19"
   },
   "build": {
     "appId": "com.taskinator3000.app",
@@ -23,7 +24,7 @@
     "files": [
       "main.cjs",
       "preload.cjs",
-      "../frontend/dist/**/*"
+      "dist-renderer/**/*"
     ],
     "mac": {
       "target": "dmg"
@@ -42,8 +43,13 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@mui/icons-material": "^7.1.0",
     "@tabler/icons-react": "^3.33.0",
+    "@tailwindcss/postcss": "^4.1.7",
+    "@vitejs/plugin-react": "^4.5.0",
+    "autoprefixer": "^10.4.21",
     "feather-icons-react": "^0.9.0",
     "lucide-react": "^0.511.0",
-    "react-icons": "^5.5.0"
+    "postcss": "^8.5.3",
+    "react-icons": "^5.5.0",
+    "tailwindcss": "^4.1.7"
   }
 }
