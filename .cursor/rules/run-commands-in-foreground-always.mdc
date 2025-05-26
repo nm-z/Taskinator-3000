@@ -1,6 +1,0 @@
----
-description: 
-globs: 
-alwaysApply: true
----
-Always run commands in foreground and do so autonomously.
