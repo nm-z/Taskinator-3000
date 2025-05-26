@@ -10,7 +10,7 @@ app = Flask(__name__, static_folder='frontend/dist')  # Serve static files from 
 # The developer sets these up once.
 # Ensure the VNC_PASSWORD matches the XPRA_PASSWORD in your .env for docker-compose.
 APP_CONFIG = {
-    "VNC_PASSWORD": os.getenv("XPRA_PASSWORD", "pass"),  # Default to "pass" or your chosen hardcoded password
+    "VNC_PASSWORD": os.getenv("XPRA_PASSWORD", "pass"),
     "VNC_WEBSOCKET_URL": "ws://localhost:14500/websockify",
     "CHAT_API_URL": "http://localhost:5000/chat"
 }

@@ -100,7 +100,7 @@ const Desktop: React.FC<DesktopProps> = ({
     };
 
     const scriptId = "novnc-rfb-script";
-    const noVncScriptUrl = "https://cdn.jsdelivr.net/npm/novnc@1.4.0/build/novnc.min.js";
+    const noVncScriptUrl = "/js/novnc.min.js";
     if (!document.getElementById(scriptId)) {
       const script = document.createElement("script");
       script.id = scriptId;
@@ -297,13 +297,25 @@ const Chat: React.FC<ChatProps> = ({
 // --- Main App Component ---
 const App: React.FC = () => {
   const [dragPath, setDragPath] = useState<Point[]>([]);
-  
-  // These should be configured based on your environment.
-  // For Canvas, if the backend is also 'localhost' relative to the Canvas server, this might work.
-  // Otherwise, you might need a proxy or publicly accessible URLs.
-  const CHAT_API_URL = "http://localhost:5000/chat"; 
-  const VNC_WEBSOCKET_URL = "ws://localhost:14500/websockify"; 
-  const VNC_PASSWORD = "password"; // IMPORTANT: Replace with your actual VNC password or use a secure config method.
+  const [config, setConfig] = useState({
+    CHAT_API_URL: "http://localhost:5000/chat",
+    VNC_WEBSOCKET_URL: "ws://localhost:14500/websockify",
+    VNC_PASSWORD: "password"
+  });
+
+  useEffect(() => {
+    async function fetchConfig() {
+      if ((window as any).electronAPI && (window as any).electronAPI.getAppConfig) {
+        const cfg = await (window as any).electronAPI.getAppConfig();
+        setConfig({
+          CHAT_API_URL: cfg.CHAT_API_URL || "http://localhost:5000/chat",
+          VNC_WEBSOCKET_URL: cfg.VNC_WEBSOCKET_URL || "ws://localhost:14500/websockify",
+          VNC_PASSWORD: cfg.VNC_PASSWORD || "password"
+        });
+      }
+    }
+    fetchConfig();
+  }, []);
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-950 text-slate-100 p-2 md:p-3 gap-2 md:gap-3 font-sans">
@@ -336,10 +348,10 @@ const App: React.FC = () => {
         }
       `}</style>
       <div className="w-full md:w-[300px] lg:w-[350px] xl:w-[400px] h-1/2 md:h-full overflow-hidden flex-shrink-0">
-        <Chat onDragPath={setDragPath} chatApiUrl={CHAT_API_URL} />
+        <Chat onDragPath={setDragPath} chatApiUrl={config.CHAT_API_URL} />
       </div>
       <div className="w-full flex-1 h-1/2 md:h-full overflow-hidden">
-        <Desktop dragPath={dragPath} vncPassword={VNC_PASSWORD} vncWebSocketUrl={VNC_WEBSOCKET_URL} />
+        <Desktop dragPath={dragPath} vncPassword={config.VNC_PASSWORD} vncWebSocketUrl={config.VNC_WEBSOCKET_URL} />
       </div>
     </div>
   );

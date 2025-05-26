@@ -1,0 +1,43 @@
+{
+  "name": "taskinator-electron-app",
+  "version": "1.0.0",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "echo 'No build step needed. React is run directly by Electron.'"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-icons": "^4.12.0",
+    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@fortawesome/free-solid-svg-icons": "^6.5.1",
+    "@fortawesome/free-regular-svg-icons": "^6.5.1",
+    "@fortawesome/free-brands-svg-icons": "^6.5.1",
+    "lucide-react": "^0.367.0",
+    "feather-icons-react": "^1.0.0",
+    "@tabler/icons-react": "^2.48.0",
+    "@mui/icons-material": "^5.15.15"
+  },
+  "devDependencies": {
+    "electron": "^36.3.1",
+    "electron-builder": "^24.6.3"
+  },
+  "build": {
+    "appId": "com.taskinator3000.app",
+    "productName": "Taskinator-3000",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "src/**/*",
+      "index.html"
+    ],
+    "mac": { "target": "dmg" },
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage" }
+  }
+} 

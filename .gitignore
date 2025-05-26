@@ -7,3 +7,4 @@ __pycache__/
 /.cursor/rules__pycache__/
 *.pyc
 **/shared
+**/electron-app/node_modules
