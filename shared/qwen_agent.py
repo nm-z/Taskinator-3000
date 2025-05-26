@@ -3,6 +3,7 @@ from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 import torch
 from transformers.models.qwen2_vl.image_processing_qwen2_vl_fast import smart_resize
 import logging
+import json
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger("qwen_agent")
@@ -44,14 +45,14 @@ def generate(messages):
 
 @app.post("/v1/chat/completions")
 async def chat(req: dict):
-    logger.info(f"Received /v1/chat/completions: {req}")
+    logger.info(json.dumps({"event": "chat_request_received", "request": req}))
     try:
         messages = req.get("messages", [])
         reply = generate(messages)
-        logger.info(f"Model reply: {reply}")
+        logger.info(json.dumps({"event": "model_reply", "reply": reply}))
         return {"choices":[{"message":{"content":reply}}]}
     except Exception as e:
-        logger.error(f"Error in chat: {e}")
+        logger.error(json.dumps({"event": "error", "error": str(e)}))
         return {"error": str(e)}
 
 if __name__ == "__main__":

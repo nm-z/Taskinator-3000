@@ -36,8 +36,7 @@ services:
       - ./shared:/workspace
     command: >
       bash -c "
-        pip install git+https://github.com/QwenLM/Qwen2.5-VL.git@main
-                   optimum-amd flash-attn --no-build-isolation &&
+        pip install git+https://github.com/huggingface/transformers accelerate qwen-vl-utils flash-attn --no-build-isolation &&
         python /workspace/qwen_agent.py
       "
     restart: unless-stopped

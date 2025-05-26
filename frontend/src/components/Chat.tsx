@@ -12,10 +12,16 @@ export default function Chat({ onDragPath }: { onDragPath?: (path: { x: number; 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [image, setImage] = useState<File | null>(null);
 
   async function sendMessage() {
-    if (!input.trim()) return;
-    let newMessages = [...messages, { role: "user", content: input }];
+    if (!input.trim() && !image) return;
+    setError(null);
+    let newMessages = [...messages];
+    if (input.trim()) {
+      newMessages = [...newMessages, { role: "user", content: input }];
+    }
     // Prepend SYSTEM_PROMPT if not present
     if (!newMessages.find(m => m.role === "system" && m.content === SYSTEM_PROMPT)) {
       newMessages = [{ role: "system", content: SYSTEM_PROMPT }, ...newMessages];
@@ -23,19 +29,49 @@ export default function Chat({ onDragPath }: { onDragPath?: (path: { x: number; 
     setMessages(newMessages);
     setInput("");
     setLoading(true);
-    await orchestrate(newMessages);
+    try {
+      await orchestrate(newMessages, image);
+    } catch (e: any) {
+      setError(e?.message || "Unknown error");
+    }
     setLoading(false);
+    setImage(null);
   }
 
-  async function orchestrate(history: Message[]) {
+  async function orchestrate(history: Message[], imageFile?: File | null) {
     let loopHistory = [...history];
-    while (true) {
-      const res = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: loopHistory.map(({ role, content }) => ({ role, content })) }),
+    let imagePayload = null;
+    if (imageFile) {
+      const reader = new FileReader();
+      imagePayload = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(imageFile);
       });
+    }
+    while (true) {
+      let body: any = { messages: loopHistory.map(({ role, content }) => ({ role, content })) };
+      if (imagePayload) body.image = imagePayload;
+      let res;
+      try {
+        res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch (e: any) {
+        setError("Network error: " + (e?.message || e));
+        break;
+      }
+      if (!res.ok) {
+        setError(`Server error: ${res.status} ${res.statusText}`);
+        break;
+      }
       const data = await res.json();
+      if (data.error) {
+        setError(data.error);
+        break;
+      }
       if (data.drag_path && onDragPath) {
         onDragPath(data.drag_path);
         setTimeout(() => onDragPath([]), 1500); // Clear after 1.5s
@@ -59,6 +95,15 @@ export default function Chat({ onDragPath }: { onDragPath?: (path: { x: number; 
   return (
     <div className="w-full h-full flex flex-col p-4 bg-white border-r overflow-y-auto">
       <h2 className="text-xl font-bold mb-4">Chat</h2>
+      {error && (
+        <div className="mb-2 p-2 bg-red-100 text-red-700 border border-red-300 rounded">{error}</div>
+      )}
+      {loading && (
+        <div className="mb-2 flex items-center gap-2 text-blue-600">
+          <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+          Waiting for agent/tool...
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto mb-4">
         {messages.map((msg, i) => {
           let isScreenshotResult = false;
@@ -102,6 +147,13 @@ export default function Chat({ onDragPath }: { onDragPath?: (path: { x: number; 
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Type a message..."
+          disabled={loading}
+        />
+        <input
+          type="file"
+          accept="image/*"
+          className="border rounded p-2"
+          onChange={e => setImage(e.target.files?.[0] || null)}
           disabled={loading}
         />
         <button
